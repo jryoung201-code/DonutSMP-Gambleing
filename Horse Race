@@ -1,0 +1,2825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Minecraft Horse Race AI</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #0f172a;
+    color: #f8fafc;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    text-align: center;
+    color: #94a3b8;
+    margin-bottom: 25px;
+}
+
+.panel {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 20px;
+}
+
+.panel h2 {
+    margin-top: 0;
+}
+
+/* BALANCE */
+
+.balance-box {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.balance-box label {
+    font-weight: bold;
+}
+
+.balance-box input {
+    flex: 1;
+    min-width: 220px;
+    background: #0f172a;
+    border: 1px solid #475569;
+    border-radius: 10px;
+    padding: 13px;
+    color: white;
+    font-size: 17px;
+}
+
+/* STATUS */
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.status-card {
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.status-label {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.status-value {
+    font-size: 20px;
+    font-weight: bold;
+    margin-top: 6px;
+}
+
+/* ODDS */
+
+.odds-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.odds-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 22px;
+    text-align: center;
+}
+
+.horse {
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.percent {
+    font-size: 38px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.small {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
+/* NETWORK */
+
+.nn-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.nn-card {
+    background: #0f172a;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+}
+
+.nn-percent {
+    font-size: 32px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.nn-description {
+    color: #94a3b8;
+    text-align: center;
+    margin-top: 15px;
+}
+
+.nn-buttons {
+    text-align: center;
+    margin-top: 15px;
+}
+
+/* ANALYSIS */
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.analysis-card {
+    background: #0f172a;
+    padding: 16px;
+    border-radius: 12px;
+}
+
+.analysis-card h3 {
+    margin-top: 0;
+}
+
+.analysis-value {
+    font-size: 21px;
+    font-weight: bold;
+}
+
+.analysis-text {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
+/* FINAL */
+
+.final {
+    border: 2px solid #475569;
+}
+
+.weights {
+    text-align: center;
+    color: #cbd5e1;
+    line-height: 1.8;
+    margin-bottom: 20px;
+}
+
+.final-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.final-card {
+    background: #0f172a;
+    border-radius: 13px;
+    padding: 20px;
+    text-align: center;
+}
+
+.final-percent {
+    font-size: 35px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.winner {
+    margin-top: 20px;
+    padding: 28px;
+    background: #0f172a;
+    border-radius: 14px;
+    text-align: center;
+}
+
+.winner-label {
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-size: 13px;
+}
+
+.winner-name {
+    font-size: 40px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.winner-percent {
+    color: #cbd5e1;
+    font-size: 23px;
+    margin-top: 5px;
+}
+
+/* BUTTONS */
+
+.buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+button {
+    border: 0;
+    border-radius: 10px;
+    padding: 13px 22px;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    filter: brightness(1.15);
+}
+
+.gold {
+    background: #a07800;
+}
+
+.copper {
+    background: #9a5b30;
+}
+
+.diamond {
+    background: #2563eb;
+}
+
+.gray {
+    background: #475569;
+}
+
+.red {
+    background: #991b1b;
+}
+
+.win-button {
+    background: #15803d;
+}
+
+.loss-button {
+    background: #b91c1c;
+}
+
+/* RESULT TRACKER */
+
+.result-tracker {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.result-stat {
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+
+.result-stat-label {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.result-stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin-top: 6px;
+}
+
+.result-message {
+    text-align: center;
+    margin-top: 15px;
+    padding: 14px;
+    background: #0f172a;
+    border-radius: 10px;
+    color: #cbd5e1;
+}
+
+/* HISTORY */
+
+.history {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.race {
+    background: #334155;
+    border-radius: 8px;
+    padding: 8px 11px;
+}
+
+/* ACCURACY */
+
+.accuracy {
+    text-align: center;
+    background: #0f172a;
+    padding: 18px;
+    border-radius: 12px;
+    margin-top: 15px;
+}
+
+.accuracy-number {
+    font-size: 30px;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+/* ERROR */
+
+#errorBox {
+    display: none;
+    background: #450a0a;
+    border: 1px solid #991b1b;
+    color: #fecaca;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+}
+
+/* MOBILE */
+
+@media (max-width: 850px) {
+
+    .status-grid,
+    .odds-grid,
+    .nn-grid,
+    .analysis-grid,
+    .final-grid,
+    .result-tracker {
+        grid-template-columns: 1fr;
+    }
+
+    body {
+        padding: 10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🏇 Minecraft Horse Race AI</h1>
+
+<div class="subtitle">
+Frequency + Recent + Pattern + Streak + Neural Network
+</div>
+
+<div id="errorBox"></div>
+
+
+<!-- BALANCE -->
+
+<div class="panel">
+
+<h2>💰 In-Game Balance</h2>
+
+<div class="balance-box">
+
+<label for="balance">
+Your Balance:
+</label>
+
+<input
+    id="balance"
+    type="number"
+    min="0"
+    step="1"
+    placeholder="Enter your in-game balance..."
+>
+
+</div>
+
+<p style="color:#94a3b8;font-size:13px;">
+Optional: enter your current Minecraft balance for your own reference.
+</p>
+
+</div>
+
+
+<!-- STATUS -->
+
+<div class="panel">
+
+<h2>📊 AI Status</h2>
+
+<div class="status-grid">
+
+<div class="status-card">
+<div class="status-label">RACES</div>
+<div class="status-value" id="raceCount">0</div>
+</div>
+
+<div class="status-card">
+<div class="status-label">TRAINING SAMPLES</div>
+<div class="status-value" id="sampleCount">0</div>
+</div>
+
+<div class="status-card">
+<div class="status-label">NETWORK</div>
+<div class="status-value" id="networkStatus">
+Waiting
+</div>
+</div>
+
+<div class="status-card">
+<div class="status-label">LOSS</div>
+<div class="status-value" id="loss">
+—
+</div>
+</div>
+
+</div>
+
+</div>
+
+
+<!-- PREDICTION -->
+
+<div class="panel">
+
+<h2>🎯 Next Race Prediction</h2>
+
+<div class="odds-grid">
+
+<div class="odds-card">
+
+<div class="horse">
+🟡 Gold
+</div>
+
+<div class="percent" id="goldPrediction">
+33.33%
+</div>
+
+<div class="small">
+Final score
+</div>
+
+</div>
+
+
+<div class="odds-card">
+
+<div class="horse">
+🟤 Copper
+</div>
+
+<div class="percent" id="copperPrediction">
+33.33%
+</div>
+
+<div class="small">
+Final score
+</div>
+
+</div>
+
+
+<div class="odds-card">
+
+<div class="horse">
+💎 Diamond
+</div>
+
+<div class="percent" id="diamondPrediction">
+33.34%
+</div>
+
+<div class="small">
+Final score
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- NEURAL NETWORK -->
+
+<div class="panel">
+
+<h2>🧠 Neural Network</h2>
+
+<div class="nn-grid">
+
+<div class="nn-card">
+
+<div>🟡 Gold</div>
+
+<div class="nn-percent" id="nnGold">
+33.33%
+</div>
+
+</div>
+
+
+<div class="nn-card">
+
+<div>🟤 Copper</div>
+
+<div class="nn-percent" id="nnCopper">
+33.33%
+</div>
+
+</div>
+
+
+<div class="nn-card">
+
+<div>💎 Diamond</div>
+
+<div class="nn-percent" id="nnDiamond">
+33.34%
+</div>
+
+</div>
+
+</div>
+
+<div class="nn-description">
+The neural network learns from previous race sequences.
+</div>
+
+<div class="nn-buttons">
+
+<button
+class="gray"
+onclick="trainNetwork()">
+
+🧠 Train Neural Network
+
+</button>
+
+</div>
+
+<div class="accuracy">
+
+<div>
+Neural Network Training Accuracy
+</div>
+
+<div class="accuracy-number" id="accuracy">
+Not trained
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ANALYSIS -->
+
+<div class="panel">
+
+<h2>🔍 Pattern Analysis</h2>
+
+<div class="analysis-grid">
+
+<div class="analysis-card">
+
+<h3>📈 Frequency</h3>
+
+<div
+class="analysis-value"
+id="frequencyFactor">
+Equal
+</div>
+
+<div
+class="analysis-text"
+id="frequencyText">
+No data.
+</div>
+
+</div>
+
+
+<div class="analysis-card">
+
+<h3>🕐 Recent</h3>
+
+<div
+class="analysis-value"
+id="recentFactor">
+Equal
+</div>
+
+<div
+class="analysis-text"
+id="recentText">
+No data.
+</div>
+
+</div>
+
+
+<div class="analysis-card">
+
+<h3>🔁 Pattern</h3>
+
+<div
+class="analysis-value"
+id="patternFactor">
+None
+</div>
+
+<div
+class="analysis-text"
+id="patternText">
+Not enough data.
+</div>
+
+</div>
+
+
+<div class="analysis-card">
+
+<h3>🔥 Streak</h3>
+
+<div
+class="analysis-value"
+id="streakFactor">
+None
+</div>
+
+<div
+class="analysis-text"
+id="streakText">
+No streak.
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- FINAL RESULT -->
+
+<div class="panel final">
+
+<h2 style="text-align:center">
+🏁 FINAL RESULT
+</h2>
+
+<div class="weights">
+
+📈 Frequency <b>30%</b>
+&nbsp; • &nbsp;
+🕐 Recent <b>20%</b>
+&nbsp; • &nbsp;
+🔁 Pattern <b>15%</b>
+&nbsp; • &nbsp;
+🔥 Streak <b>10%</b>
+&nbsp; • &nbsp;
+🧠 Neural <b>25%</b>
+
+</div>
+
+
+<div class="final-grid">
+
+<div class="final-card">
+
+<div>🟡 Gold</div>
+
+<div
+class="final-percent"
+id="finalGold">
+33.33%
+</div>
+
+</div>
+
+
+<div class="final-card">
+
+<div>🟤 Copper</div>
+
+<div
+class="final-percent"
+id="finalCopper">
+33.33%
+</div>
+
+</div>
+
+
+<div class="final-card">
+
+<div>💎 Diamond</div>
+
+<div
+class="final-percent"
+id="finalDiamond">
+33.34%
+</div>
+
+</div>
+
+</div>
+
+
+<div
+style="
+text-align:center;
+margin-top:18px;
+color:#94a3b8;
+">
+
+Total:
+
+<strong
+id="total"
+style="color:white">
+100.00%
+</strong>
+
+</div>
+
+
+<div class="winner">
+
+<div class="winner-label">
+🏆 FINAL PREDICTION
+</div>
+
+<div
+class="winner-name"
+id="winner">
+⚪ Waiting
+</div>
+
+<div
+class="winner-percent"
+id="winnerPercent">
+—
+</div>
+
+</div>
+
+</div>
+
+
+<!-- PREDICTION RESULT -->
+
+<div class="panel">
+
+<h2>📊 Prediction Result</h2>
+
+<p style="text-align:center;color:#94a3b8;">
+After the race finishes, mark whether the AI's final prediction
+was correct.
+</p>
+
+<div class="buttons">
+
+<button
+class="win-button"
+onclick="recordPredictionResult(true)">
+
+🏆 WON
+
+</button>
+
+<button
+class="loss-button"
+onclick="recordPredictionResult(false)">
+
+❌ LOST
+
+</button>
+
+</div>
+
+
+<div class="result-tracker">
+
+<div class="result-stat">
+
+<div class="result-stat-label">
+PREDICTIONS
+</div>
+
+<div
+class="result-stat-value"
+id="predictionCount">
+0
+</div>
+
+</div>
+
+
+<div class="result-stat">
+
+<div class="result-stat-label">
+WINS
+</div>
+
+<div
+class="result-stat-value"
+id="predictionWins">
+0
+</div>
+
+</div>
+
+
+<div class="result-stat">
+
+<div class="result-stat-label">
+LOSSES
+</div>
+
+<div
+class="result-stat-value"
+id="predictionLosses">
+0
+</div>
+
+</div>
+
+
+<div class="result-stat">
+
+<div class="result-stat-label">
+ACCURACY
+</div>
+
+<div
+class="result-stat-value"
+id="predictionAccuracy">
+0.0%
+</div>
+
+</div>
+
+</div>
+
+
+<div
+class="result-message"
+id="predictionResultMessage">
+
+No prediction result recorded yet.
+
+</div>
+
+</div>
+
+
+<!-- RECORD RESULT -->
+
+<div class="panel">
+
+<h2>🎮 Enter Actual Race Result</h2>
+
+<p
+style="
+text-align:center;
+color:#94a3b8;
+">
+
+After the dispenser chooses the horse,
+click the actual result below.
+
+</p>
+
+<div class="buttons">
+
+<button
+class="gold"
+onclick="recordWinner('Gold')">
+
+🟡 Gold
+
+</button>
+
+
+<button
+class="copper"
+onclick="recordWinner('Copper')">
+
+🟤 Copper
+
+</button>
+
+
+<button
+class="diamond"
+onclick="recordWinner('Diamond')">
+
+💎 Diamond
+
+</button>
+
+</div>
+
+</div>
+
+
+<!-- HISTORY -->
+
+<div class="panel">
+
+<h2>📜 Race History</h2>
+
+<div
+class="history"
+id="history">
+</div>
+
+<br>
+
+<div class="buttons">
+
+<button
+class="gray"
+onclick="restoreOriginal()">
+
+↩️ Load Your 16 Races
+
+</button>
+
+
+<button
+class="red"
+onclick="resetAll()">
+
+🗑️ Reset To 0
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   CONFIG
+===================================================== */
+
+const HORSES = [
+    "Gold",
+    "Copper",
+    "Diamond"
+];
+
+const EMOJI = {
+
+    Gold: "🟡",
+
+    Copper: "🟤",
+
+    Diamond: "💎"
+
+};
+
+const SEQUENCE_LENGTH = 5;
+
+const WEIGHTS = {
+
+    frequency: 0.30,
+
+    recent: 0.20,
+
+    pattern: 0.15,
+
+    streak: 0.10,
+
+    neural: 0.25
+
+};
+
+
+/* =====================================================
+   ORIGINAL 16 RESULTS
+===================================================== */
+
+const ORIGINAL_RESULTS = [
+
+    "Diamond",
+    "Copper",
+    "Diamond",
+    "Copper",
+    "Gold",
+    "Copper",
+    "Copper",
+    "Gold",
+    "Gold",
+    "Diamond",
+    "Copper",
+    "Gold",
+    "Diamond",
+    "Copper",
+    "Diamond",
+    "Gold"
+
+];
+
+
+/* =====================================================
+   VARIABLES
+===================================================== */
+
+let history = [];
+
+let model = null;
+
+let training = false;
+
+let neural = {
+
+    Gold: 33.33,
+
+    Copper: 33.33,
+
+    Diamond: 33.34
+
+};
+
+let lastLoss = null;
+
+let accuracy = null;
+
+
+/* Prediction result statistics */
+
+let predictionStats = {
+
+    total: 0,
+
+    wins: 0,
+
+    losses: 0,
+
+    lastResult: null
+
+};
+
+
+/* =====================================================
+   NORMALIZE
+===================================================== */
+
+function normalize(values) {
+
+    let total =
+        values.Gold +
+        values.Copper +
+        values.Diamond;
+
+    if (!Number.isFinite(total) || total <= 0) {
+
+        return {
+
+            Gold: 33.33,
+
+            Copper: 33.33,
+
+            Diamond: 33.34
+
+        };
+
+    }
+
+    return {
+
+        Gold:
+            values.Gold / total * 100,
+
+        Copper:
+            values.Copper / total * 100,
+
+        Diamond:
+            values.Diamond / total * 100
+
+    };
+
+}
+
+
+/* =====================================================
+   BEST HORSE
+===================================================== */
+
+function bestHorse(values) {
+
+    return HORSES.reduce(
+
+        (best, horse) => {
+
+            return values[horse] >
+                   values[best]
+                ? horse
+                : best;
+
+        },
+
+        HORSES[0]
+
+    );
+
+}
+
+
+/* =====================================================
+   ONE HOT
+===================================================== */
+
+function oneHot(horse) {
+
+    return HORSES.map(
+        h => h === horse ? 1 : 0
+    );
+
+}
+
+
+/* =====================================================
+   SAVE PREDICTION STATS
+===================================================== */
+
+function savePredictionStats() {
+
+    localStorage.setItem(
+
+        "minecraftHorseRacePredictionStats",
+
+        JSON.stringify(
+            predictionStats
+        )
+
+    );
+
+}
+
+
+/* =====================================================
+   LOAD PREDICTION STATS
+===================================================== */
+
+function loadPredictionStats() {
+
+    const saved =
+        localStorage.getItem(
+            "minecraftHorseRacePredictionStats"
+        );
+
+    if (!saved) {
+
+        predictionStats = {
+
+            total: 0,
+
+            wins: 0,
+
+            losses: 0,
+
+            lastResult: null
+
+        };
+
+        return;
+
+    }
+
+    try {
+
+        const parsed =
+            JSON.parse(saved);
+
+        if (
+            parsed &&
+            Number.isFinite(parsed.total) &&
+            Number.isFinite(parsed.wins) &&
+            Number.isFinite(parsed.losses)
+        ) {
+
+            predictionStats = {
+
+                total: parsed.total,
+
+                wins: parsed.wins,
+
+                losses: parsed.losses,
+
+                lastResult:
+                    parsed.lastResult || null
+
+            };
+
+        }
+
+    }
+
+    catch {
+
+        predictionStats = {
+
+            total: 0,
+
+            wins: 0,
+
+            losses: 0,
+
+            lastResult: null
+
+        };
+
+    }
+
+}
+
+
+/* =====================================================
+   RECORD PREDICTION RESULT
+===================================================== */
+
+function recordPredictionResult(won) {
+
+    predictionStats.total++;
+
+    if (won) {
+
+        predictionStats.wins++;
+
+        predictionStats.lastResult =
+            "won";
+
+    }
+
+    else {
+
+        predictionStats.losses++;
+
+        predictionStats.lastResult =
+            "lost";
+
+    }
+
+    savePredictionStats();
+
+    updatePredictionStats();
+
+}
+
+
+/* =====================================================
+   UPDATE PREDICTION STATS
+===================================================== */
+
+function updatePredictionStats() {
+
+    const total =
+        predictionStats.total;
+
+    const wins =
+        predictionStats.wins;
+
+    const losses =
+        predictionStats.losses;
+
+    const predictionAccuracy =
+        total > 0
+            ? wins / total * 100
+            : 0;
+
+
+    document.getElementById(
+        "predictionCount"
+    ).textContent =
+        total;
+
+
+    document.getElementById(
+        "predictionWins"
+    ).textContent =
+        wins;
+
+
+    document.getElementById(
+        "predictionLosses"
+    ).textContent =
+        losses;
+
+
+    document.getElementById(
+        "predictionAccuracy"
+    ).textContent =
+        predictionAccuracy.toFixed(1)
+        + "%";
+
+
+    const message =
+        document.getElementById(
+            "predictionResultMessage"
+        );
+
+
+    if (
+        predictionStats.lastResult ===
+        "won"
+    ) {
+
+        message.textContent =
+            "🏆 Last prediction: WON";
+
+    }
+
+    else if (
+        predictionStats.lastResult ===
+        "lost"
+    ) {
+
+        message.textContent =
+            "❌ Last prediction: LOST";
+
+    }
+
+    else {
+
+        message.textContent =
+            "No prediction result recorded yet.";
+
+    }
+
+}
+
+
+/* =====================================================
+   SAVE HISTORY
+===================================================== */
+
+function saveHistory() {
+
+    localStorage.setItem(
+
+        "minecraftHorseRaceHistory",
+
+        JSON.stringify(history)
+
+    );
+
+}
+
+
+/* =====================================================
+   LOAD HISTORY
+===================================================== */
+
+function loadHistory() {
+
+    const saved =
+        localStorage.getItem(
+            "minecraftHorseRaceHistory"
+        );
+
+    if (!saved) {
+
+        history = [];
+
+        return;
+
+    }
+
+    try {
+
+        const parsed =
+            JSON.parse(saved);
+
+        if (
+            Array.isArray(parsed) &&
+            parsed.every(
+                value =>
+                    HORSES.includes(value)
+            )
+        ) {
+
+            history = parsed;
+
+        }
+
+        else {
+
+            history = [];
+
+        }
+
+    }
+
+    catch {
+
+        history = [];
+
+    }
+
+}
+
+
+/* =====================================================
+   FREQUENCY
+===================================================== */
+
+function frequencyScores() {
+
+    if (!history.length) {
+
+        return {
+
+            Gold: 33.33,
+
+            Copper: 33.33,
+
+            Diamond: 33.34
+
+        };
+
+    }
+
+    const counts = {
+
+        Gold: 0,
+
+        Copper: 0,
+
+        Diamond: 0
+
+    };
+
+    history.forEach(
+        horse => counts[horse]++
+    );
+
+    return normalize(counts);
+
+}
+
+
+/* =====================================================
+   RECENT
+===================================================== */
+
+function recentScores() {
+
+    const recent =
+        history.slice(-10);
+
+    if (!recent.length) {
+
+        return {
+
+            Gold: 33.33,
+
+            Copper: 33.33,
+
+            Diamond: 33.34
+
+        };
+
+    }
+
+    const counts = {
+
+        Gold: 0,
+
+        Copper: 0,
+
+        Diamond: 0
+
+    };
+
+    recent.forEach(
+        horse => counts[horse]++
+    );
+
+    return normalize(counts);
+
+}
+
+
+/* =====================================================
+   STREAK
+===================================================== */
+
+function getStreak() {
+
+    if (!history.length) {
+
+        return {
+
+            horse: null,
+
+            count: 0
+
+        };
+
+    }
+
+    const last =
+        history[history.length - 1];
+
+    let count = 0;
+
+    for (
+        let i = history.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        if (history[i] === last) {
+
+            count++;
+
+        }
+
+        else {
+
+            break;
+
+        }
+
+    }
+
+    return {
+
+        horse: last,
+
+        count
+
+    };
+
+}
+
+
+function streakScores() {
+
+    const scores = {
+
+        Gold: 1,
+
+        Copper: 1,
+
+        Diamond: 1
+
+    };
+
+    const streak =
+        getStreak();
+
+    if (streak.horse) {
+
+        scores[streak.horse] +=
+            Math.min(
+                streak.count * 0.5,
+                2
+            );
+
+    }
+
+    return normalize(scores);
+
+}
+
+
+/* =====================================================
+   PATTERN
+===================================================== */
+
+function patternScores() {
+
+    const scores = {
+
+        Gold: 0,
+
+        Copper: 0,
+
+        Diamond: 0
+
+    };
+
+    if (
+        history.length <
+        SEQUENCE_LENGTH
+    ) {
+
+        return {
+
+            scores: {
+
+                Gold: 33.33,
+
+                Copper: 33.33,
+
+                Diamond: 33.34
+
+            },
+
+            detected: false,
+
+            text:
+                "Need more history."
+
+        };
+
+    }
+
+
+    for (
+        let length = 1;
+        length <= 3;
+        length++
+    ) {
+
+        if (
+            history.length <= length
+        ) continue;
+
+
+        const latest =
+            history.slice(-length);
+
+
+        for (
+            let i = 0;
+            i <= history.length - length - 1;
+            i++
+        ) {
+
+            const oldSequence =
+                history.slice(
+                    i,
+                    i + length
+                );
+
+
+            if (
+                oldSequence.join("|") ===
+                latest.join("|")
+            ) {
+
+                const next =
+                    history[i + length];
+
+
+                if (next) {
+
+                    scores[next] +=
+                        length * 10;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    const total =
+        scores.Gold +
+        scores.Copper +
+        scores.Diamond;
+
+
+    if (total === 0) {
+
+        return {
+
+            scores: {
+
+                Gold: 33.33,
+
+                Copper: 33.33,
+
+                Diamond: 33.34
+
+            },
+
+            detected: false,
+
+            text:
+                "No repeating sequence found."
+
+        };
+
+    }
+
+
+    const normalized =
+        normalize(scores);
+
+    const best =
+        bestHorse(normalized);
+
+
+    return {
+
+        scores: normalized,
+
+        detected: true,
+
+        text:
+            "Repeated sequence favors "
+            + best
+            + "."
+
+    };
+
+}
+
+
+/* =====================================================
+   CREATE MODEL
+===================================================== */
+
+function createModel() {
+
+    const network =
+        tf.sequential();
+
+
+    network.add(
+        tf.layers.dense({
+
+            inputShape: [
+                SEQUENCE_LENGTH * 3
+            ],
+
+            units: 32,
+
+            activation: "relu"
+
+        })
+    );
+
+
+    network.add(
+        tf.layers.dense({
+
+            units: 16,
+
+            activation: "relu"
+
+        })
+    );
+
+
+    network.add(
+        tf.layers.dense({
+
+            units: 3,
+
+            activation: "softmax"
+
+        })
+    );
+
+
+    network.compile({
+
+        optimizer:
+            tf.train.adam(0.01),
+
+        loss:
+            "categoricalCrossentropy",
+
+        metrics:
+            ["accuracy"]
+
+    });
+
+
+    return network;
+
+}
+
+
+/* =====================================================
+   TRAINING DATA
+===================================================== */
+
+function makeTrainingData() {
+
+    const xs = [];
+
+    const ys = [];
+
+
+    for (
+        let i = SEQUENCE_LENGTH;
+        i < history.length;
+        i++
+    ) {
+
+        const sequence =
+            history.slice(
+                i - SEQUENCE_LENGTH,
+                i
+            );
+
+
+        const input = [];
+
+
+        sequence.forEach(
+            horse => {
+
+                input.push(
+                    ...oneHot(horse)
+                );
+
+            }
+        );
+
+
+        xs.push(input);
+
+
+        ys.push(
+            oneHot(history[i])
+        );
+
+    }
+
+
+    return {
+
+        xs,
+
+        ys
+
+    };
+
+}
+
+
+/* =====================================================
+   TRAIN NETWORK
+===================================================== */
+
+async function trainNetwork() {
+
+    if (training) return;
+
+    training = true;
+
+
+    try {
+
+        document.getElementById(
+            "networkStatus"
+        ).textContent =
+            "Training...";
+
+
+        await tf.ready();
+
+
+        const data =
+            makeTrainingData();
+
+
+        document.getElementById(
+            "sampleCount"
+        ).textContent =
+            data.xs.length;
+
+
+        if (data.xs.length < 2) {
+
+            document.getElementById(
+                "networkStatus"
+            ).textContent =
+                "Need more data";
+
+
+            neural = {
+
+                Gold: 33.33,
+
+                Copper: 33.33,
+
+                Diamond: 33.34
+
+            };
+
+
+            updatePage();
+
+            return;
+
+        }
+
+
+        if (model) {
+
+            model.dispose();
+
+            model = null;
+
+        }
+
+
+        model =
+            createModel();
+
+
+        const xs =
+            tf.tensor2d(data.xs);
+
+        const ys =
+            tf.tensor2d(data.ys);
+
+
+        const result =
+            await model.fit(
+
+                xs,
+
+                ys,
+
+                {
+
+                    epochs: 80,
+
+                    batchSize:
+                        Math.min(
+                            8,
+                            data.xs.length
+                        ),
+
+                    shuffle: true,
+
+                    verbose: 0
+
+                }
+
+            );
+
+
+        const losses =
+            result.history.loss;
+
+
+        if (
+            losses &&
+            losses.length
+        ) {
+
+            lastLoss =
+                losses[
+                    losses.length - 1
+                ];
+
+        }
+
+
+        const predictions =
+            model.predict(xs);
+
+
+        const predictedClasses =
+            predictions.argMax(-1);
+
+
+        const actualClasses =
+            ys.argMax(-1);
+
+
+        const correctTensor =
+            predictedClasses
+                .equal(actualClasses)
+                .sum();
+
+
+        const correct =
+            await correctTensor.data();
+
+
+        accuracy =
+            correct[0] /
+            data.xs.length *
+            100;
+
+
+        predictions.dispose();
+
+        predictedClasses.dispose();
+
+        actualClasses.dispose();
+
+        correctTensor.dispose();
+
+        xs.dispose();
+
+        ys.dispose();
+
+
+        await neuralPrediction();
+
+
+        document.getElementById(
+            "networkStatus"
+        ).textContent =
+            "Trained";
+
+
+        updatePage();
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+
+        const box =
+            document.getElementById(
+                "errorBox"
+            );
+
+
+        box.style.display =
+            "block";
+
+
+        box.textContent =
+            "Neural Network Error:\n\n"
+            +
+            (
+                error.message ||
+                String(error)
+            );
+
+
+        document.getElementById(
+            "networkStatus"
+        ).textContent =
+            "Error";
+
+    }
+
+    finally {
+
+        training = false;
+
+    }
+
+}
+
+
+/* =====================================================
+   NEURAL PREDICTION
+===================================================== */
+
+async function neuralPrediction() {
+
+    if (
+        !model ||
+        history.length <
+        SEQUENCE_LENGTH
+    ) {
+
+        neural = {
+
+            Gold: 33.33,
+
+            Copper: 33.33,
+
+            Diamond: 33.34
+
+        };
+
+        return;
+
+    }
+
+
+    const sequence =
+        history.slice(
+            -SEQUENCE_LENGTH
+        );
+
+
+    const input = [];
+
+
+    sequence.forEach(
+        horse => {
+
+            input.push(
+                ...oneHot(horse)
+            );
+
+        }
+    );
+
+
+    const tensor =
+        tf.tensor2d([input]);
+
+
+    const prediction =
+        model.predict(tensor);
+
+
+    const values =
+        await prediction.data();
+
+
+    neural = {
+
+        Gold:
+            values[0] * 100,
+
+        Copper:
+            values[1] * 100,
+
+        Diamond:
+            values[2] * 100
+
+    };
+
+
+    tensor.dispose();
+
+    prediction.dispose();
+
+}
+
+
+/* =====================================================
+   FINAL SCORE
+===================================================== */
+
+function calculateFinal() {
+
+    const frequency =
+        frequencyScores();
+
+    const recent =
+        recentScores();
+
+    const pattern =
+        patternScores();
+
+    const streak =
+        streakScores();
+
+
+    const final = {
+
+        Gold: 0,
+
+        Copper: 0,
+
+        Diamond: 0
+
+    };
+
+
+    HORSES.forEach(
+        horse => {
+
+            final[horse] =
+
+                frequency[horse]
+                *
+                WEIGHTS.frequency
+
+                +
+
+                recent[horse]
+                *
+                WEIGHTS.recent
+
+                +
+
+                pattern.scores[horse]
+                *
+                WEIGHTS.pattern
+
+                +
+
+                streak[horse]
+                *
+                WEIGHTS.streak
+
+                +
+
+                neural[horse]
+                *
+                WEIGHTS.neural;
+
+        }
+    );
+
+
+    return {
+
+        final:
+            normalize(final),
+
+        frequency,
+
+        recent,
+
+        pattern,
+
+        streak
+
+    };
+
+}
+
+
+/* =====================================================
+   UPDATE PAGE
+===================================================== */
+
+function updatePage() {
+
+    const data =
+        calculateFinal();
+
+
+    const final =
+        data.final;
+
+
+    document.getElementById(
+        "goldPrediction"
+    ).textContent =
+        final.Gold.toFixed(2)
+        + "%";
+
+
+    document.getElementById(
+        "copperPrediction"
+    ).textContent =
+        final.Copper.toFixed(2)
+        + "%";
+
+
+    document.getElementById(
+        "diamondPrediction"
+    ).textContent =
+        final.Diamond.toFixed(2)
+        + "%";
+
+
+    document.getElementById(
+        "nnGold"
+    ).textContent =
+        neural.Gold.toFixed(2)
+        + "%";
+
+
+    document.getElementById(
+        "nnCopper"
+    ).textContent =
+        neural.Copper.toFixed(2)
+        + "%";
+
+
+    document.getElementById(
+        "nnDiamond"
+    ).textContent =
+        neural.Diamond.toFixed(2)
+        + "%";
+
+
+    document.getElementById(
+        "finalGold"
+    ).textContent =
+        final.Gold.toFixed(2)
+        + "%";
+
+
+    document.getElementById(
+        "finalCopper"
+    ).textContent =
+        final.Copper.toFixed(2)
+        + "%";
+
+
+    document.getElementById(
+        "finalDiamond"
+    ).textContent =
+        final.Diamond.toFixed(2)
+        + "%";
+
+
+    const total =
+        final.Gold +
+        final.Copper +
+        final.Diamond;
+
+
+    document.getElementById(
+        "total"
+    ).textContent =
+        total.toFixed(2)
+        + "%";
+
+
+    const winner =
+        bestHorse(final);
+
+
+    document.getElementById(
+        "winner"
+    ).textContent =
+        EMOJI[winner]
+        + " "
+        + winner;
+
+
+    document.getElementById(
+        "winnerPercent"
+    ).textContent =
+        final[winner].toFixed(2)
+        + "%";
+
+
+    document.getElementById(
+        "raceCount"
+    ).textContent =
+        history.length;
+
+
+    const samples =
+        makeTrainingData();
+
+
+    document.getElementById(
+        "sampleCount"
+    ).textContent =
+        samples.xs.length;
+
+
+    document.getElementById(
+        "loss"
+    ).textContent =
+
+        lastLoss === null
+            ? "—"
+            : Number(lastLoss)
+                .toFixed(4);
+
+
+    document.getElementById(
+        "accuracy"
+    ).textContent =
+
+        accuracy === null
+            ? "Not trained"
+            : accuracy.toFixed(1)
+              + "%";
+
+
+    /* Frequency */
+
+    const frequencyBest =
+        bestHorse(data.frequency);
+
+
+    document.getElementById(
+        "frequencyFactor"
+    ).textContent =
+        EMOJI[frequencyBest]
+        + " "
+        + frequencyBest;
+
+
+    document.getElementById(
+        "frequencyText"
+    ).textContent =
+        data.frequency[
+            frequencyBest
+        ].toFixed(2)
+        + "% overall";
+
+
+    /* Recent */
+
+    const recentBest =
+        bestHorse(data.recent);
+
+
+    document.getElementById(
+        "recentFactor"
+    ).textContent =
+        EMOJI[recentBest]
+        + " "
+        + recentBest;
+
+
+    document.getElementById(
+        "recentText"
+    ).textContent =
+        data.recent[
+            recentBest
+        ].toFixed(2)
+        + "% in last 10";
+
+
+    /* Pattern */
+
+    if (data.pattern.detected) {
+
+        const patternBest =
+            bestHorse(
+                data.pattern.scores
+            );
+
+
+        document.getElementById(
+            "patternFactor"
+        ).textContent =
+            EMOJI[patternBest]
+            + " "
+            + patternBest;
+
+
+        document.getElementById(
+            "patternText"
+        ).textContent =
+            data.pattern.text;
+
+    }
+
+    else {
+
+        document.getElementById(
+            "patternFactor"
+        ).textContent =
+            "None";
+
+
+        document.getElementById(
+            "patternText"
+        ).textContent =
+            data.pattern.text;
+
+    }
+
+
+    /* Streak */
+
+    const streak =
+        getStreak();
+
+
+    if (streak.horse) {
+
+        document.getElementById(
+            "streakFactor"
+        ).textContent =
+            EMOJI[streak.horse]
+            + " "
+            + streak.horse;
+
+
+        document.getElementById(
+            "streakText"
+        ).textContent =
+            streak.count
+            + " consecutive";
+
+    }
+
+    else {
+
+        document.getElementById(
+            "streakFactor"
+        ).textContent =
+            "None";
+
+
+        document.getElementById(
+            "streakText"
+        ).textContent =
+            "No streak.";
+
+    }
+
+
+    renderHistory();
+
+    updatePredictionStats();
+
+}
+
+
+/* =====================================================
+   HISTORY
+===================================================== */
+
+function renderHistory() {
+
+    const container =
+        document.getElementById(
+            "history"
+        );
+
+
+    container.innerHTML = "";
+
+
+    history.forEach(
+        (horse, index) => {
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+
+            item.className =
+                "race";
+
+
+            item.textContent =
+                "#"
+                + (index + 1)
+                + " "
+                + EMOJI[horse]
+                + " "
+                + horse;
+
+
+            container.appendChild(
+                item
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   RECORD ACTUAL RACE RESULT
+===================================================== */
+
+async function recordWinner(horse) {
+
+    history.push(horse);
+
+    saveHistory();
+
+    updatePage();
+
+    await trainNetwork();
+
+}
+
+
+/* =====================================================
+   RESTORE ORIGINAL 16
+===================================================== */
+
+async function restoreOriginal() {
+
+    history =
+        [...ORIGINAL_RESULTS];
+
+
+    saveHistory();
+
+
+    if (model) {
+
+        model.dispose();
+
+        model = null;
+
+    }
+
+
+    neural = {
+
+        Gold: 33.33,
+
+        Copper: 33.33,
+
+        Diamond: 33.34
+
+    };
+
+
+    lastLoss = null;
+
+    accuracy = null;
+
+
+    updatePage();
+
+
+    await trainNetwork();
+
+}
+
+
+/* =====================================================
+   RESET EVERYTHING
+===================================================== */
+
+async function resetAll() {
+
+    const confirmed =
+        confirm(
+            "Reset all race history AND prediction statistics?"
+        );
+
+
+    if (!confirmed) return;
+
+
+    history = [];
+
+
+    saveHistory();
+
+
+    predictionStats = {
+
+        total: 0,
+
+        wins: 0,
+
+        losses: 0,
+
+        lastResult: null
+
+    };
+
+
+    savePredictionStats();
+
+
+    if (model) {
+
+        model.dispose();
+
+        model = null;
+
+    }
+
+
+    neural = {
+
+        Gold: 33.33,
+
+        Copper: 33.33,
+
+        Diamond: 33.34
+
+    };
+
+
+    lastLoss = null;
+
+    accuracy = null;
+
+
+    document.getElementById(
+        "networkStatus"
+    ).textContent =
+        "Waiting";
+
+
+    document.getElementById(
+        "errorBox"
+    ).style.display =
+        "none";
+
+
+    updatePage();
+
+    updatePredictionStats();
+
+}
+
+
+/* =====================================================
+   START
+===================================================== */
+
+async function start() {
+
+    try {
+
+        await tf.ready();
+
+
+        loadHistory();
+
+        loadPredictionStats();
+
+
+        updatePage();
+
+        updatePredictionStats();
+
+
+        if (
+            history.length >=
+            SEQUENCE_LENGTH + 2
+        ) {
+
+            await trainNetwork();
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+
+        const box =
+            document.getElementById(
+                "errorBox"
+            );
+
+
+        box.style.display =
+            "block";
+
+
+        box.textContent =
+            "Startup Error:\n\n"
+            +
+            (
+                error.message ||
+                String(error)
+            );
+
+    }
+
+}
+
+
+start();
+
+</script>
+
+</body>
+</html>
