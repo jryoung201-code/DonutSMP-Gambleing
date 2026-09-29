@@ -9,7 +9,7 @@ Set these on the bot worker in Render:
 - `DATABASE_URL`: the same PostgreSQL connection string used by the backend.
 - `MC_SERVER_HOST`: DonutSMP server host.
 - `MC_SERVER_PORT`: optional; defaults to `25565`.
-- `BOT_MICROSOFT_EMAIL`: Microsoft account email for the bot. This is an identifier, not a password.
+- `BOT_PROFILE_ID`: optional stable label used to cache the bot account tokens; defaults to `donutsmp-bot`. It is not an email or password. Mineflayer will show a Microsoft device code in the worker logs, and you complete sign-in with the bot’s Minecraft Java account.
 - `BOT_AUTH_CACHE_DIR`: optional persistent directory for Minecraft Microsoft sign-in tokens. Set to `/var/data/minecraft-auth` when the worker has a persistent disk mounted at `/var/data`.
 - `MC_VERSION`: optional Mineflayer protocol version; autodetects by default.
 
