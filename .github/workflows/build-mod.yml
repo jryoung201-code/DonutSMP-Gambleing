@@ -34,11 +34,26 @@ jobs:
       - name: Build mod
         run: gradle build --no-daemon
 
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install desktop bot dependencies
+        working-directory: .
+        run: npm ci --prefix bot
+
+      - name: Build Windows desktop bot
+        working-directory: .
+        run: npm run build:desktop:win --prefix bot
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: donutsmp-gamehub-mod
-          path: mod/build/libs/*.jar
+          path: |
+            mod/build/libs/*.jar
+            bot/dist/DonutSMPDesktopBot.exe
           if-no-files-found: error
 
       - name: Create GitHub release
@@ -49,3 +64,4 @@ jobs:
           generate_release_notes: true
           files: |
             mod/build/libs/donutsmp-game-hub-0.1.5.jar
+            bot/dist/DonutSMPDesktopBot.exe
