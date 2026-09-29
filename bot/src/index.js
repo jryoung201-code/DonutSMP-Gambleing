@@ -34,8 +34,18 @@ let polling = false;
 await fs.mkdir(config.profilesFolder, { recursive: true });
 await pool.query("CREATE TABLE IF NOT EXISTS bot_payment_jobs(job_id UUID PRIMARY KEY, request_id UUID NOT NULL UNIQUE, player TEXT NOT NULL, amount BIGINT NOT NULL CHECK (amount > 0), status TEXT NOT NULL CHECK (status IN ('queued','dispatching','paid','rejected','uncertain')), requested_by TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), completed_at TIMESTAMPTZ, result_message TEXT)");
 await pool.query("CREATE TABLE IF NOT EXISTS bot_identity(singleton BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (singleton IS TRUE), minecraft_uuid TEXT NOT NULL, username TEXT NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+await pool.query("CREATE TABLE IF NOT EXISTS bot_auth_status(singleton BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (singleton IS TRUE), state TEXT NOT NULL, user_code TEXT, verification_uri TEXT, message TEXT, username TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ)");
+await pool.query("INSERT INTO bot_auth_status(singleton,state,message) VALUES(TRUE,'starting','Bot worker is starting.') ON CONFLICT(singleton) DO UPDATE SET state='starting', user_code=NULL, verification_uri=NULL, message='Bot worker is starting.', username=NULL, updated_at=NOW(), expires_at=NULL");
 // A job left dispatching after a restart may already have reached the server. Never resend it automatically.
 await pool.query("UPDATE bot_payment_jobs SET status='uncertain', completed_at=NOW(), result_message='Worker restarted after dispatch; verify in game before taking action.' WHERE status='dispatching'");
+
+async function writeAuthStatus(state, { userCode = null, verificationUri = null, message = null, username = null, expiresIn = null } = {}) {
+  const expiresAt = Number.isFinite(expiresIn) && expiresIn > 0 ? new Date(Date.now() + expiresIn * 1000) : null;
+  try {
+    await pool.query("INSERT INTO bot_auth_status(singleton,state,user_code,verification_uri,message,username,updated_at,expires_at) VALUES(TRUE,$1,$2,$3,$4,$5,NOW(),$6) ON CONFLICT(singleton) DO UPDATE SET state=EXCLUDED.state,user_code=EXCLUDED.user_code,verification_uri=EXCLUDED.verification_uri,message=EXCLUDED.message,username=EXCLUDED.username,updated_at=NOW(),expires_at=EXCLUDED.expires_at", [state,userCode,verificationUri,message,username,expiresAt]);
+  } catch (error) { console.error("Could not update bot sign-in status:", error.message); }
+}
+let authFailed = false;
 
 function messageText(message) {
   return (typeof message === "string" ? message : message?.toString?.() || "").replace(/§[0-9a-fk-or]/gi, "").toLowerCase();
@@ -81,6 +91,7 @@ function attachBotEvents(client) {
     } catch (error) {
       console.error("Could not save Minecraft bot identity:", error.message);
     }
+    void writeAuthStatus("connected", { username: client.username, message: "The Minecraft bot is connected." });
     schedulePoll();
   });
   client.on("message", inspectServerMessage);
@@ -88,10 +99,11 @@ function attachBotEvents(client) {
     if (activeJob) finishJob("uncertain", "Disconnected while awaiting payment confirmation: " + messageText(reason));
     console.warn("Minecraft bot was kicked:", messageText(reason));
   });
-  client.on("error", error => console.error("Minecraft connection error:", error.message));
+  client.on("error", error => { console.error("Minecraft connection error:", error.message); if (!client.player) { authFailed = true; void writeAuthStatus("failed", { message: "Minecraft sign-in or connection failed. Check Render worker logs, then restart the worker to request a new code." }); } });
   client.on("end", () => {
     if (activeJob) finishJob("uncertain", "Minecraft disconnected after dispatch; verify in game before retrying.");
     if (!stopping) {
+      if (!authFailed) void writeAuthStatus("disconnected", { message: "The bot disconnected and is trying to reconnect." });
       console.warn("Minecraft connection ended; reconnecting in 10 seconds.");
       reconnectTimer = setTimeout(startBot, 10000);
     }
@@ -143,6 +155,7 @@ async function dispatchNext() {
 }
 function startBot() {
   if (stopping) return;
+  authFailed = false;
   try {
     bot = mineflayer.createBot({
       host: config.host,
@@ -151,6 +164,14 @@ function startBot() {
       auth: "microsoft",
       version: config.version,
       profilesFolder: config.profilesFolder,
+      onMsaCode: code => {
+        const userCode = code?.user_code || code?.userCode || null;
+        const verificationUri = code?.verification_uri || code?.verificationUri || "https://www.microsoft.com/link";
+        const message = typeof code?.message === "string" ? code.message : "Open Microsoft device sign-in and enter the code shown on the admin page.";
+        console.log(message);
+        if (userCode) console.log("Microsoft device code:", userCode);
+        void writeAuthStatus("awaiting_code", { userCode, verificationUri, message, expiresIn: Number(code?.expires_in || code?.expiresIn) || 900 });
+      },
       hideErrors: false
     });
     attachBotEvents(bot);
