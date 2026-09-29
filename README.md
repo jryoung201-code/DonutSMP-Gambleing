@@ -47,10 +47,14 @@ bot/       Minecraft bot integration
 The old horse-racing AI implementation is no longer part of the project.
 
 
-## Protected admin configuration
+## Admin page and bot payments
 
-The Render backend serves a password-protected admin page at `/admin`. It can update and persist the minimum and maximum amounts, payment target, visible odds setting, and enabled games.
+The Render backend serves the admin page at `/admin`. Sign in with the same Microsoft account and Minecraft Java profile used by the bot. The bot must connect and record its verified profile UUID before admin sign-in can succeed.
 
-Before signing in, set `ADMIN_PASSWORD` in the Render web service's Environment settings. Choose a private password with at least 12 characters; do not put it in GitHub or paste it into chat. Save the environment change and let Render redeploy. Then open `https://<your-render-service>/admin`.
+The page can update minimum and maximum amounts, payment target, visible odds, and enabled games. It can also queue a manually confirmed `/pay <player> <amount>` payment for the bot. Payments are queued in PostgreSQL and capped by `ADMIN_MAX_FORCE_PAY` (default `5000000`). A timeout or disconnect after sending is marked `uncertain`; check in game before issuing another payment.
 
-The admin session uses an HttpOnly, Secure, SameSite cookie and expires after eight hours. Failed sign-in attempts are rate limited. The config API rejects unauthenticated requests and validates all submitted settings server-side.
+## Render setup
+
+The repository's Render Blueprint deploys the API and database. Create a separate Render background worker using the `bot/` directory, build command `npm install`, and start command `npm start`. Configure the worker with the same `DATABASE_URL` as the API, plus `MC_SERVER_HOST`, `BOT_MICROSOFT_EMAIL`, and optionally `MC_SERVER_PORT` and `MC_VERSION`. Use a persistent disk mounted at `/var/data` and set `BOT_AUTH_CACHE_DIR=/var/data/minecraft-auth` so Microsoft sign-in tokens survive worker restarts. Follow the first-run device sign-in prompt in the worker logs. See [bot/README.md](bot/README.md) for details.
+
+The admin session uses an HttpOnly, Secure, SameSite cookie and expires after eight hours.
