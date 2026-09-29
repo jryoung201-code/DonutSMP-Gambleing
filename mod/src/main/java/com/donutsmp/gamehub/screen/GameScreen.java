@@ -8,7 +8,6 @@ import com.donutsmp.gamehub.money.AmountParser;
 import com.donutsmp.gamehub.money.MoneyFormat;
 import com.donutsmp.gamehub.net.BetRequest;
 import com.donutsmp.gamehub.net.BetResponse;
-import com.donutsmp.gamehub.net.PaymentTransactionResponse;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -211,7 +210,7 @@ public final class GameScreen extends Screen {
             StringBuilder prices = new StringBuilder();
             for (Game.Selection item : game.selections()) {
                 Long price = config.cratePrices().get(item.id());
-                if (price != null) prices.append(item.label()).append('' '').append(MoneyFormat.compact(price)).append("   ");
+                if (price != null) prices.append(item.label()).append(" ").append(MoneyFormat.compact(price)).append("   ");
             }
             ctx.drawTextWithShadow(textRenderer, Text.literal(prices.toString().trim()), px + 10, py + 40, Theme.MUTED);
         }
