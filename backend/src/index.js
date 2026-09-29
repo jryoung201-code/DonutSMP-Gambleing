@@ -480,7 +480,7 @@ app.get("/api/admin/bot-auth", requireAdmin, async (req, res) => {
     if (!result.rowCount) return res.json({ state: "not_started", stateLabel: "Waiting for bot worker", userCode: null, verificationUri: "https://www.microsoft.com/link", message: "The worker has not requested a Microsoft sign-in code yet. Start or restart the bot worker in Render." });
     const row = result.rows[0];
     const codeValid = row.state === "awaiting_code" && (!row.expires_at || new Date(row.expires_at).getTime() > Date.now());
-    const stateLabel = codeValid ? "Sign in with Microsoft" : ({ starting: "Bot worker starting", authenticated: "Account linked", connected: "Bot connected", failed: "Bot sign-in failed", disconnected: "Bot disconnected" }[row.state] || "Waiting for bot worker");
+    const stateLabel = codeValid ? "Sign in with Microsoft" : ({ starting: "Bot worker starting", authenticated: "Account linked", connected: "Bot connected", failed: "Bot sign-in failed", blocked: "DonutSMP security check", disconnected: "Bot disconnected" }[row.state] || "Waiting for bot worker");
     const message = codeValid ? "Enter this code at Microsoft device sign-in. This code expires shortly." : (row.message || (row.username ? "Signed in as " + row.username + "." : "Waiting for the bot worker."));
     return res.json({ state: codeValid ? row.state : row.state === "awaiting_code" ? "expired" : row.state, stateLabel, userCode: codeValid ? row.user_code : null, verificationUri: row.verification_uri || "https://www.microsoft.com/link", message, username: row.username || null, updatedAt: row.updated_at });
   } catch (error) {
