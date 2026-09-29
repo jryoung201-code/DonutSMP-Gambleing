@@ -55,6 +55,6 @@ The page can update minimum and maximum amounts, payment target, visible odds, a
 
 ## Render setup
 
-The repository's Render Blueprint deploys the API and database. Create a separate Render background worker using the `bot/` directory, build command `npm install`, and start command `npm start`. Configure the worker with the same `DATABASE_URL` as the API, plus `MC_SERVER_HOST`, `BOT_MICROSOFT_EMAIL`, and optionally `MC_SERVER_PORT` and `MC_VERSION`. Use a persistent disk mounted at `/var/data` and set `BOT_AUTH_CACHE_DIR=/var/data/minecraft-auth` so Microsoft sign-in tokens survive worker restarts. Follow the first-run device sign-in prompt in the worker logs. See [bot/README.md](bot/README.md) for details.
+The repository's Render Blueprint deploys the API and database. Create a separate Render background worker using the `bot/` directory, build command `npm install`, and start command `npm start`. Configure the worker with the same `DATABASE_URL` as the API, plus `MC_SERVER_HOST=donutsmp.net`; optionally set `MC_SERVER_PORT`, `MC_VERSION`, and `BOT_PROFILE_ID`. Use a persistent disk mounted at `/var/data` and set `BOT_AUTH_CACHE_DIR=/var/data/minecraft-auth` so Microsoft sign-in tokens survive worker restarts. Follow the first-run device sign-in prompt in the worker logs. See [bot/README.md](bot/README.md) for details.
 
 The admin session uses an HttpOnly, Secure, SameSite cookie and expires after eight hours.
