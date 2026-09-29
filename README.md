@@ -45,3 +45,12 @@ bot/       Minecraft bot integration
 ```
 
 The old horse-racing AI implementation is no longer part of the project.
+
+
+## Protected admin configuration
+
+The Render backend serves a password-protected admin page at `/admin`. It can update and persist the minimum and maximum amounts, payment target, visible odds setting, and enabled games.
+
+Before signing in, set `ADMIN_PASSWORD` in the Render web service's Environment settings. Choose a private password with at least 12 characters; do not put it in GitHub or paste it into chat. Save the environment change and let Render redeploy. Then open `https://<your-render-service>/admin`.
+
+The admin session uses an HttpOnly, Secure, SameSite cookie and expires after eight hours. Failed sign-in attempts are rate limited. The config API rejects unauthenticated requests and validates all submitted settings server-side.
