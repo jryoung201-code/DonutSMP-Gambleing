@@ -5,7 +5,7 @@ services:
     plan: free
     repo: https://github.com/jryoung201-code/DonutSMP-Gambleing-AI
     branch: main
-    buildCommand: npm ci --prefix backend
+    buildCommand: npm install --prefix backend
     startCommand: npm start --prefix backend
     autoDeploy: yes
     healthCheckPath: /health
