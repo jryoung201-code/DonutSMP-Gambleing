@@ -49,7 +49,7 @@ The old horse-racing AI implementation is no longer part of the project.
 
 ## Admin page and bot payments
 
-The Render backend serves the admin page at `/admin`. Sign in with the same Microsoft account and Minecraft Java profile used by the bot. The bot must connect and record its verified profile UUID before admin sign-in can succeed.
+The Render backend serves the admin page at `/admin`. First sign in with the password configured as `ADMIN_PASSWORD` on the backend web service (at least 12 characters). Then complete Microsoft device sign-in using the same Microsoft account and Minecraft Java profile used by the bot. The bot must connect and record its verified profile UUID before sign-in can succeed.
 
 The page can update minimum and maximum amounts, payment target, visible odds, and enabled games. It can also queue a manually confirmed `/pay <player> <amount>` payment for the bot. Payments are queued in PostgreSQL and capped by `ADMIN_MAX_FORCE_PAY` (default `5000000`). A timeout or disconnect after sending is marked `uncertain`; check in game before issuing another payment.
 
