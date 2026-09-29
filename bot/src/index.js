@@ -61,14 +61,16 @@ function messageText(message) {
   if (!text) {
     const parts = [];
     const visit = value => {
+      if (typeof value === "string") { parts.push(value); return; }
       if (!value || typeof value !== "object") return;
       if (Array.isArray(value)) { for (const item of value) visit(item); return; }
       if (typeof value.text === "string") parts.push(value.text);
+      else if (typeof value.text?.value === "string") parts.push(value.text.value);
       if (typeof value.translate === "string") parts.push(value.translate);
-      for (const key of ["with", "extra", "contents"]) if (value[key]) visit(value[key]);
+      for (const key of ["value", "with", "extra", "contents"]) if (value[key] !== undefined) visit(value[key]);
     };
     visit(message);
-    text = parts.length ? parts.join(" ") : JSON.stringify(message);
+    text = parts.length ? parts.join("") : JSON.stringify(message);
   }
   return text.replace(/§[0-9a-fk-or]/gi, "").toLowerCase();
 }
@@ -122,6 +124,11 @@ function attachBotEvents(client) {
     const details = messageText(reason);
     if (activeJob) finishJob("uncertain", "Disconnected while awaiting payment confirmation: " + details);
     console.warn("Minecraft bot was kicked; server reason:", details);
+    if (/possible unauthorized login|for your own safety we've blocked it/.test(details)) {
+      void writeAuthStatus("blocked", { message: "DonutSMP blocked this login as possibly unauthorized. Confirm the login using the bot account's Discord DM, make sure that account is verified in the DonutSMP Discord and that direct messages are enabled, then start the bot again." });
+      void shutdown("DonutSMP login security block");
+      return;
+    }
     void writeAuthStatus("disconnected", { message: "The server kicked the bot: " + details.slice(0, 300) });
   });
   client.on("error", error => { console.error("Minecraft connection error:", error.message); if (!client.player) { authFailed = true; void writeAuthStatus("failed", { message: "Minecraft sign-in or connection failed. Check Render worker logs, then restart the worker to request a new code." }); } });
