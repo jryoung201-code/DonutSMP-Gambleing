@@ -46,9 +46,31 @@ async function writeAuthStatus(state, { userCode = null, verificationUri = null,
   } catch (error) { console.error("Could not update bot sign-in status:", error.message); }
 }
 let authFailed = false;
+let reconnectAttempts = 0;
 
 function messageText(message) {
-  return (typeof message === "string" ? message : message?.toString?.() || "").replace(/§[0-9a-fk-or]/gi, "").toLowerCase();
+  if (message == null) return "";
+  let text = "";
+  if (typeof message === "string") {
+    text = message;
+    try { message = JSON.parse(message); } catch { return text.replace(/§[0-9a-fk-or]/gi, "").toLowerCase(); }
+  } else {
+    const rendered = message.toString?.();
+    if (rendered && rendered !== "[object Object]") text = rendered;
+  }
+  if (!text) {
+    const parts = [];
+    const visit = value => {
+      if (!value || typeof value !== "object") return;
+      if (Array.isArray(value)) { for (const item of value) visit(item); return; }
+      if (typeof value.text === "string") parts.push(value.text);
+      if (typeof value.translate === "string") parts.push(value.translate);
+      for (const key of ["with", "extra", "contents"]) if (value[key]) visit(value[key]);
+    };
+    visit(message);
+    text = parts.length ? parts.join(" ") : JSON.stringify(message);
+  }
+  return text.replace(/§[0-9a-fk-or]/gi, "").toLowerCase();
 }
 function finishJob(status, message) {
   if (!activeJob) return;
@@ -77,6 +99,7 @@ function inspectServerMessage(jsonMessage) {
 }
 function attachBotEvents(client) {
   client.on("spawn", async () => {
+    reconnectAttempts = 0;
     console.log("Minecraft bot connected as", client.username);
     const uuid = client.player?.uuid;
     if (!uuid) {
@@ -96,16 +119,20 @@ function attachBotEvents(client) {
   });
   client.on("message", inspectServerMessage);
   client.on("kicked", reason => {
-    if (activeJob) finishJob("uncertain", "Disconnected while awaiting payment confirmation: " + messageText(reason));
-    console.warn("Minecraft bot was kicked:", messageText(reason));
+    const details = messageText(reason);
+    if (activeJob) finishJob("uncertain", "Disconnected while awaiting payment confirmation: " + details);
+    console.warn("Minecraft bot was kicked; server reason:", details);
+    void writeAuthStatus("disconnected", { message: "The server kicked the bot: " + details.slice(0, 300) });
   });
   client.on("error", error => { console.error("Minecraft connection error:", error.message); if (!client.player) { authFailed = true; void writeAuthStatus("failed", { message: "Minecraft sign-in or connection failed. Check Render worker logs, then restart the worker to request a new code." }); } });
   client.on("end", () => {
     if (activeJob) finishJob("uncertain", "Minecraft disconnected after dispatch; verify in game before retrying.");
     if (!stopping) {
       if (!authFailed) void writeAuthStatus("disconnected", { message: "The bot disconnected and is trying to reconnect." });
-      console.warn("Minecraft connection ended; reconnecting in 10 seconds.");
-      reconnectTimer = setTimeout(startBot, 10000);
+      const delay = Math.min(10000 * (2 ** reconnectAttempts), 120000);
+      reconnectAttempts++;
+      console.warn("Minecraft connection ended; reconnecting in", Math.round(delay / 1000), "seconds.");
+      reconnectTimer = setTimeout(startBot, delay);
     }
   });
 }
