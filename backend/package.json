@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "postinstall": "npm install --prefix ../bot --omit=dev"
   },
   "dependencies": {
     "express": "^5.1.0",
