@@ -23,7 +23,7 @@ The first connection may request Microsoft device sign-in. Complete the code sho
 - A timeout, disconnection, or restart after dispatch is marked `uncertain`. The worker never retries an uncertain payment automatically because the server may already have processed it. Check in game before manually issuing another payment.
 - The admin page caps one payment at `ADMIN_MAX_FORCE_PAY` (default `5000000`).
 
-The bot's verified Java profile UUID and name are stored in `bot_identity`. The admin page requires a Microsoft sign-in that resolves to the same profile.
+The bot's verified Java profile UUID and name are stored in `bot_identity` for service tracking. Admin access is password-protected; the Microsoft device-code link is provided on the admin page for the bot's own sign-in.
 
 ## Run locally
 
