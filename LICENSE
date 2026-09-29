@@ -1,21 +1,23 @@
-MIT License
+DonutSMP Money Tracker - Proprietary License
+Copyright (c) 2026 Money Tracker Contributors. All rights reserved.
 
-Copyright (c) 2026 A Damb good small coder
+This software is proprietary. No permission is granted to copy, modify,
+adapt, decompile, reverse engineer, redistribute, sublicense, publish, sell,
+or create derivative works from this software or its assets, except as
+expressly authorized in writing by the copyright holder.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+One personal license may run the unmodified official release on the licensed
+user's own Minecraft installation. A license key may not be shared, sold,
+transferred, or used to provide access to another person.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Removing, bypassing, disabling, or altering the license verification system is
+not permitted. The official license server and its keys remain the property
+of the copyright holder.
+
+Third-party libraries and APIs remain subject to their own licenses. This
+license does not grant rights to Minecraft, Fabric, DonutSMP, or any other
+third-party property.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+IMPLIED. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COPYRIGHT HOLDER SHALL
+NOT BE LIABLE FOR ANY DAMAGES ARISING FROM USE OF THE SOFTWARE.
