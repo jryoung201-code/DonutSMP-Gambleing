@@ -365,6 +365,16 @@ app.post("/api/admin/minecraft-login/start", async (req, res) => {
   const preAuth = adminPasswordSession(req);
   if (!preAuth) return res.status(401).json({ reason: "Enter the admin password first" });
   if (!pool) return res.status(503).json({ reason: "Persistent database is required for bot sign-in" });
+  let registeredBot;
+  try {
+    registeredBot = await pool.query("SELECT minecraft_uuid FROM bot_identity WHERE singleton=TRUE");
+  } catch (error) {
+    console.error("Could not read bot identity:", error.message);
+    return res.status(503).json({ reason: "Could not check the bot account. Try again shortly." });
+  }
+  if (!registeredBot.rowCount) {
+    return res.status(503).json({ reason: "The bot has not connected to Minecraft yet. Start the Render bot worker and wait for it to join the server, then sign in here." });
+  }
   const key = req.ip || req.socket.remoteAddress || "unknown";
   const now = Date.now();
   const prior = (adminLoginAttempts.get(key) || []).filter(time => now - time < 600000);
@@ -386,13 +396,14 @@ app.post("/api/admin/minecraft-login/start", async (req, res) => {
     const identity = await pool.query("SELECT minecraft_uuid FROM bot_identity WHERE singleton=TRUE");
     const actual = String(profile.id).replace(/-/g, "").toLowerCase();
     const expected = identity.rowCount ? String(identity.rows[0].minecraft_uuid).replace(/-/g, "").toLowerCase() : "";
-    if (!expected || actual !== expected) throw new Error("Sign in with the Minecraft account configured for the bot");
+    if (!expected) throw new Error("The bot has not registered its Minecraft Java account. Start the bot worker and try again.");
+    if (actual !== expected) throw new Error("This Microsoft account does not match the bot’s Minecraft Java account. Use the same Java account configured for the bot.");
     attempt.username = profile.name;
     attempt.token = crypto.randomBytes(32).toString("base64url");
     attempt.state = "authenticated";
   }).catch(error => {
     console.warn("Minecraft Microsoft admin sign-in failed:", error.message);
-    attempt.reason = error.message.includes("configured for the bot")
+    attempt.reason = error.message.includes("does not match the bot") || error.message.includes("has not registered its Minecraft Java account")
       ? error.message
       : "Microsoft sign-in failed or the account has no Minecraft Java profile";
     attempt.state = "failed";
