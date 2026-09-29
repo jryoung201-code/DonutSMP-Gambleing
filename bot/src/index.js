@@ -5,7 +5,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 
 const { Pool } = pg;
-const required = ["DATABASE_URL", "MC_SERVER_HOST", "BOT_MICROSOFT_EMAIL"];
+const required = ["DATABASE_URL", "MC_SERVER_HOST"];
 for (const key of required) {
   if (!process.env[key]) throw new Error("Missing required environment variable: " + key);
 }
@@ -17,7 +17,7 @@ const pool = new Pool({
 const config = {
   host: process.env.MC_SERVER_HOST,
   port: Number(process.env.MC_SERVER_PORT || 25565),
-  email: process.env.BOT_MICROSOFT_EMAIL,
+  profileId: process.env.BOT_PROFILE_ID || "donutsmp-bot",
   version: process.env.MC_VERSION || false,
   profilesFolder: process.env.BOT_AUTH_CACHE_DIR || path.join(os.homedir(), ".minecraft-auth"),
   pollMs: Math.max(1000, Number(process.env.BOT_PAYMENT_POLL_MS || 2000)),
@@ -147,7 +147,7 @@ function startBot() {
     bot = mineflayer.createBot({
       host: config.host,
       port: config.port,
-      username: config.email,
+      username: config.profileId,
       auth: "microsoft",
       version: config.version,
       profilesFolder: config.profilesFolder,
