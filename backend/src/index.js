@@ -31,6 +31,7 @@ const CONFIG = {
 
 const sessions = new Map();
 const memoryTransactions = new Map();
+const memoryPaymentTransactions = new Map();
 const memoryBalances = new Map();
 const RATE_LIMIT_WINDOW_MS = 5000;
 const RATE_LIMIT_MAX = 5;
@@ -140,6 +141,7 @@ async function ensureSchema() {
   if (!pool) return;
   await pool.query("CREATE TABLE IF NOT EXISTS players(uuid TEXT PRIMARY KEY, username TEXT NOT NULL, balance BIGINT NOT NULL DEFAULT 0)");
   await pool.query("CREATE TABLE IF NOT EXISTS transactions(player_uuid TEXT NOT NULL, transaction_id UUID NOT NULL, request JSONB NOT NULL, response JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY(player_uuid, transaction_id))");
+  await pool.query("CREATE TABLE IF NOT EXISTS payment_transactions(transaction_id UUID PRIMARY KEY, player_uuid TEXT NOT NULL, username TEXT NOT NULL, target TEXT NOT NULL, amount BIGINT NOT NULL CHECK (amount > 0), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
 }
 async function balanceFor(uuid) {
   if (!pool) return memoryBalances.get(uuid) ?? 0n;
@@ -242,6 +244,52 @@ app.get("/api/config", (req, res) => {
   };
   if (CONFIG.showOdds) response.oddsBasisPoints = CONFIG.oddsBasisPoints;
   res.json(response);
+});
+
+app.post("/api/payment-transactions", async (req, res) => {
+  const session = sessionFor(req);
+  const { amount } = req.body || {};
+
+  if (!session) return reject(res, null, "UNAUTHENTICATED", "Authentication required", 401);
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
+    return reject(res, null, "INVALID_AMOUNT", "Amount must be a positive integer");
+  }
+  if (rateLimited("payment:" + session.playerUuid)) {
+    return reject(res, null, "RATE_LIMITED", "Too many requests; try again shortly", 429);
+  }
+
+  const transactionId = crypto.randomUUID();
+  try {
+    if (pool) {
+      await pool.query(
+        "INSERT INTO payment_transactions(transaction_id, player_uuid, username, target, amount) VALUES($1, $2, $3, $4, $5)",
+        [transactionId, session.playerUuid, session.username, CONFIG.paymentTarget, String(amount)]
+      );
+    } else {
+      memoryPaymentTransactions.set(transactionId, {
+        playerUuid: session.playerUuid,
+        username: session.username,
+        target: CONFIG.paymentTarget,
+        amount
+      });
+    }
+
+    return res.status(201).json({
+      accepted: true,
+      transactionId,
+      target: CONFIG.paymentTarget,
+      amount,
+      status: "recorded"
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      accepted: false,
+      transactionId,
+      code: "SERVER_ERROR",
+      reason: "Could not record payment transaction"
+    });
+  }
 });
 
 app.post("/api/bet", async (req, res) => {

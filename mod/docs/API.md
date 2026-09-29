@@ -12,3 +12,7 @@ Authentication uses the Mojang session flow:
 The wire game IDs are 50_50, wheel, crates, horseRacing, 45_45_10, and oddEven.
 
 See the backend repository/API contract for the complete response detail schema and transaction rules.
+
+## Payment transaction
+
+The PLAY button authenticates with the existing Mojang session flow and calls `POST /api/payment-transactions` with the integer amount. The backend derives the player from the bearer token, records the configured payment target and amount, and returns a server-generated transaction ID. Only after that record succeeds does the client send the normal Minecraft `/pay <target> <amount>` command. This endpoint does not call `/api/bet` or return a game result or payout.
