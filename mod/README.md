@@ -1,16 +1,9 @@
-# DonutSMP Game Hub Mod
+# DonutSMP Game Hub (Fabric client mod, Minecraft 1.21.11)
 
-Fabric 1.21.11 client mod for the DonutSMP Game Hub.
+Client-only mod. Open with the client command `/gamehub`. All outcomes come from the configured backend; the client only displays what the server returns.
 
-The mod uses the Game Hub backend for game results and does not calculate outcomes client-side.
-
-## Build in GitHub
-
-The repository includes a GitHub Actions workflow at `.github/workflows/build-mod.yml`.
-Push changes under `mod/` or run the workflow manually from the Actions tab.
-
-The compiled JAR is uploaded as the workflow artifact `donutsmp-gamehub-mod`.
+## Build
+GitHub Actions builds this project automatically with Java 21 and Gradle 9.2.1.
 
 ## License
-
-See [LICENSE](../LICENSE).
+See [LICENSE](LICENSE).
