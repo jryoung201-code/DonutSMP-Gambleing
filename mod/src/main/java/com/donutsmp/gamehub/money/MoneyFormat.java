@@ -1,0 +1,3 @@
+package com.donutsmp.gamehub.money;
+import java.util.Locale;
+public final class MoneyFormat {private MoneyFormat(){}private static final long[] UNITS={1_000_000_000_000L,1_000_000_000L,1_000_000L,1_000L};private static final String[] SUFFIX={"t","b","m","k"};public static String compact(long v){if(v<0)return"-"+compact(-v);for(int i=0;i<UNITS.length;i++){long u=UNITS[i];if(v<u)continue;long whole=v/u,rem=v%u;if(rem==0)return whole+SUFFIX[i];if((rem*10)%u==0)return whole+"."+(rem*10/u)+SUFFIX[i];if((rem*100)%u==0)return whole+"."+String.format(Locale.ROOT,"%02d",rem*100/u)+SUFFIX[i];break;}return grouped(v);}public static String grouped(long v){return String.format(Locale.ROOT,"%,d",v);}}
