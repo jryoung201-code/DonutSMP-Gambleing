@@ -82,6 +82,7 @@ async function main() {
   let heartbeatTimer;
   let pollTimer;
   let reconnectTimer;
+  let lastKickDetails = "";
 
   const messageText = message => {
     let value = "";
@@ -150,6 +151,14 @@ async function main() {
         },
         hideErrors: false
       });
+      bot.on("connect", () => {
+        console.log(`TCP connected to ${serverHost}:${serverPort}; waiting for Minecraft login.`);
+        void sendStatus("connecting", "Connected to the server address; waiting for Minecraft login.");
+      });
+      bot.on("login", () => {
+        console.log("Minecraft login accepted; waiting for DonutSMP to load the player.");
+        void sendStatus("joining", "Minecraft accepted the account; waiting to enter the world.");
+      });
       bot.on("spawn", async () => {
         reconnectDelay = 5000;
         const uuid = bot.player?.uuid || null;
@@ -159,6 +168,8 @@ async function main() {
       bot.on("message", message => { void inspectMessage(message); });
       bot.on("kicked", reason => {
         const details = messageText(reason);
+        lastKickDetails = details.slice(0, 500);
+        console.error("Minecraft server rejected the join:", details || "No kick reason provided.");
         if (activeJob) void finishJob("uncertain", "Disconnected while awaiting payment confirmation: " + details);
         if (/possible unauthorized login|for your own safety we've blocked it/.test(details)) {
           void sendStatus("blocked", "DonutSMP blocked this login. Confirm it using the bot account's Discord DM, then press Restart Bot / Rejoin in the admin page.");
@@ -172,11 +183,14 @@ async function main() {
         console.error("Minecraft connection error:", error.message);
         void sendStatus("failed", "Minecraft sign-in or connection failed: " + error.message.slice(0, 250));
       });
-      bot.on("end", () => {
+      bot.on("end", reason => {
+        const details = lastKickDetails || messageText(reason);
+        if (details) console.error("Minecraft connection ended:", details.slice(0, 500));
         if (activeJob) void finishJob("uncertain", "Minecraft disconnected after dispatch; verify in game before retrying.");
         if (stopped || securityBlocked) return;
         if (restarting) return;
-        void sendStatus("disconnected", "Bot disconnected; trying to reconnect from this PC.");
+        void sendStatus("disconnected", details ? "Disconnected: " + details.slice(0, 300) : "Bot disconnected; trying to reconnect from this PC.");
+        lastKickDetails = "";
         scheduleReconnect(reconnectDelay);
         reconnectDelay = Math.min(reconnectDelay * 2, 120000);
       });

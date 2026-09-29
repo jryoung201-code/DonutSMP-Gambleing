@@ -486,7 +486,7 @@ app.post("/api/admin/desktop-bot/status", requireAdmin, async (req, res) => {
   if (!sameAdminOrigin(req)) return res.status(403).json({ reason: "Invalid request origin" });
   if (!pool) return res.status(503).json({ reason: "Persistent database is required for the desktop bot" });
   const { state, message = "", username = null, userCode = null, verificationUri = null, expiresIn = null, minecraftUuid = null } = req.body || {};
-  const states = ["starting", "awaiting_code", "authenticated", "connected", "failed", "blocked", "disconnected"];
+  const states = ["starting", "awaiting_code", "authenticated", "connecting", "joining", "connected", "failed", "blocked", "disconnected"];
   if (!states.includes(state) || typeof message !== "string" || message.length > 500 ||
       (username !== null && (typeof username !== "string" || username.length > 16)) ||
       (userCode !== null && (typeof userCode !== "string" || userCode.length > 32)) ||
@@ -575,7 +575,7 @@ app.get("/api/admin/bot-auth", requireAdmin, async (req, res) => {
     if (!result.rowCount) return res.json({ state: "starting", stateLabel: "Desktop app starting", userCode: null, verificationUri: "https://www.microsoft.com/link", message: presence.rows[0].message || "Waiting for the desktop bot app." });
     const row = result.rows[0];
     const codeValid = row.state === "awaiting_code" && (!row.expires_at || new Date(row.expires_at).getTime() > Date.now());
-    const stateLabel = codeValid ? "Sign in with Microsoft" : ({ starting: "Desktop bot starting", authenticated: "Account linked", connected: "Bot connected from your PC", failed: "Bot sign-in failed", blocked: "DonutSMP security check", disconnected: "Bot disconnected" }[row.state] || "Waiting for desktop bot");
+    const stateLabel = codeValid ? "Sign in with Microsoft" : ({ starting: "Desktop bot starting", awaiting_code: "Sign in with Microsoft", authenticated: "Account linked", connecting: "Connecting to DonutSMP", joining: "DonutSMP is loading the bot", connected: "Bot connected from your PC", failed: "Bot sign-in failed", blocked: "DonutSMP security check", disconnected: "Bot disconnected" }[row.state] || "Waiting for desktop bot");
     const message = codeValid ? "Enter this code at Microsoft device sign-in. This code expires shortly." : (row.message || (row.username ? "Signed in as " + row.username + "." : "Waiting for the bot worker."));
     return res.json({ state: codeValid ? row.state : row.state === "awaiting_code" ? "expired" : row.state, stateLabel, userCode: codeValid ? row.user_code : null, verificationUri: row.verification_uri || "https://www.microsoft.com/link", message, username: row.username || null, updatedAt: row.updated_at });
   } catch (error) {
