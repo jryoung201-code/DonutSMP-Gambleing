@@ -13,7 +13,7 @@ const pool = process.env.DATABASE_URL ? new Pool({
 }) : null;
 
 const CONFIG = {
-  minimumBet: 500000n,
+  minimumBet: 100000n,
   maximumBet: 2000000n,
   paymentTarget: process.env.PAYMENT_TARGET || "VoduDoll_YT",
   enabledGames: ["50_50", "wheel", "crates", "horseRacing", "45_45_10", "oddEven"],
@@ -258,7 +258,7 @@ app.post("/api/bet", async (req, res) => {
   if (isCrate ? bet !== 0 : (betAmount < CONFIG.minimumBet || betAmount > CONFIG.maximumBet)) {
     return reject(res, transactionId,
       betAmount < CONFIG.minimumBet ? "BELOW_MINIMUM" : "ABOVE_MAXIMUM",
-      betAmount < CONFIG.minimumBet ? "Minimum bet is 500k" : "Maximum bet is 2m");
+      betAmount < CONFIG.minimumBet ? "Minimum bet is 100k" : "Maximum bet is 2m");
   }
   if (!legalSelection(game, selection)) return reject(res, transactionId, "INVALID_SELECTION", "Selection is not legal for this game");
   if (rateLimited(session.playerUuid)) return reject(res, transactionId, "RATE_LIMITED", "Too many requests; try again shortly", 429);
