@@ -19,6 +19,10 @@ public final class BackendClient {
    .thenCompose(v->send("/api/payment-transactions","POST",GSON.toJson(Map.of("amount",amount))))
    .thenApply(r->{PaymentTransactionResponse x=GSON.fromJson(r.body(),PaymentTransactionResponse.class);if(x==null)throw new IllegalStateException("Empty payment transaction response (HTTP "+r.statusCode()+")");if(r.statusCode()!=201||!x.accepted)throw new IllegalStateException(x.reason==null?"Payment transaction failed (HTTP "+r.statusCode()+")":x.reason);return x;});
  }
+ public CompletableFuture<Void> confirmPaymentTransaction(String transactionId){
+  return ensureAuthenticated().thenCompose(v->send("/api/payment-transactions/"+transactionId+"/confirm","POST","{}"))
+   .thenApply(r->{JsonObject x=GSON.fromJson(r.body(),JsonObject.class);if(r.statusCode()!=200||x==null||!x.has("accepted")||!x.get("accepted").getAsBoolean())throw new IllegalStateException(x!=null&&x.has("reason")?x.get("reason").getAsString():"Payment confirmation failed (HTTP "+r.statusCode()+")");return null;});
+ }
  private CompletableFuture<Void> ensureAuthenticated(String username,String accessToken,UUID profileUuid){
   if(token!=null&&System.currentTimeMillis()<tokenExpiresAt-30000)return CompletableFuture.completedFuture(null);
   if(username==null||accessToken==null||profileUuid==null)return CompletableFuture.failedFuture(new IllegalStateException("Minecraft session is unavailable"));

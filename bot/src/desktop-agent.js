@@ -51,26 +51,34 @@ async function main() {
   if (!password) throw new Error("Admin password is required.");
 
   const origin = new URL(backend).origin;
-  const login = await fetch(backend + "/api/admin/password-login", {
-    method: "POST", headers: { "Content-Type": "application/json", Origin: origin },
-    body: JSON.stringify({ password })
-  });
-  const loginData = await login.json().catch(() => ({}));
-  if (!login.ok) throw new Error(loginData.reason || "Could not sign in to the backend.");
-  const cookie = (login.headers.get("set-cookie") || "").split(";")[0];
-  if (!cookie.startsWith("gamehub_admin=")) throw new Error("Backend sign-in did not return an admin session.");
-  const api = async (route, options = {}) => {
+  let cookie = "";
+  const signIn = async () => {
+    const login = await fetch(backend + "/api/admin/password-login", {
+      method: "POST", headers: { "Content-Type": "application/json", Origin: origin },
+      body: JSON.stringify({ password })
+    });
+    const loginData = await login.json().catch(() => ({}));
+    if (!login.ok) throw new Error(loginData.reason || "Could not sign in to the backend.");
+    cookie = (login.headers.get("set-cookie") || "").split(";")[0];
+    if (!cookie.startsWith("gamehub_admin=")) throw new Error("Backend sign-in did not return an admin session.");
+  };
+  await signIn();
+  const api = async (route, options = {}, retryAuth = true) => {
     const response = await fetch(backend + route, {
       ...options,
       headers: { "Content-Type": "application/json", Origin: origin, Cookie: cookie, ...(options.headers || {}) }
     });
     const data = await response.json().catch(() => ({}));
+    if (response.status === 401 && retryAuth) {
+      await signIn();
+      return api(route, options, false);
+    }
     if (!response.ok) throw new Error(data.reason || `Backend request failed (${response.status}).`);
     return data;
   };
 
   await fs.mkdir(profileDir, { recursive: true });
-  await api("/api/admin/desktop-bot/status", { method: "POST", body: JSON.stringify({ state: "starting", message: "Desktop bot app is starting on your PC." }) });
+  await api("/api/admin/desktop-bot/status", { method: "POST", body: JSON.stringify({ state: "starting", message: "Starting the desktop bot." }) });
 
   let bot;
   let activeJob = null;
@@ -257,4 +265,3 @@ main().catch(error => {
   input.resume();
   input.once("data", () => process.exit(1));
 });
-
