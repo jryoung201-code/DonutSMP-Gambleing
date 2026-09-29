@@ -254,6 +254,12 @@ app.post("/api/payment-transactions", async (req, res) => {
   if (!Number.isSafeInteger(amount) || amount <= 0) {
     return reject(res, null, "INVALID_AMOUNT", "Amount must be a positive integer");
   }
+  if (BigInt(amount) < CONFIG.minimumBet) {
+    return reject(res, null, "BELOW_MINIMUM", "Minimum amount is 100k");
+  }
+  if (BigInt(amount) > CONFIG.maximumBet) {
+    return reject(res, null, "ABOVE_MAXIMUM", "Maximum amount is 2m");
+  }
   if (rateLimited("payment:" + session.playerUuid)) {
     return reject(res, null, "RATE_LIMITED", "Too many requests; try again shortly", 429);
   }
