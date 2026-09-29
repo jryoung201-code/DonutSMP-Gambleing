@@ -1,0 +1,39 @@
+name: Build DonutSMP Game Hub Mod
+
+on:
+  push:
+    paths:
+      - 'mod/**'
+      - '.github/workflows/build-mod.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.2.1'
+
+      - name: Build mod
+        run: gradle build --no-daemon
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: donutsmp-gamehub-mod
+          path: mod/build/libs/*.jar
+          if-no-files-found: error
