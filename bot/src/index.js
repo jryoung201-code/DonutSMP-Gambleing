@@ -109,7 +109,7 @@ async function claimNext() {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const found = await client.query("SELECT job_id, player, amount FROM bot_payment_jobs WHERE status='queued' ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1");
+    const found = await client.query("SELECT job_id, player, amount FROM bot_payment_jobs WHERE status='queued' ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED");
     if (!found.rowCount) {
       await client.query("COMMIT");
       return null;
