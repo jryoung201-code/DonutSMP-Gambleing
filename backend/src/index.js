@@ -317,7 +317,7 @@ function requireAdmin(req, res, next) {
   next();
 }
 function adminPasswordSession(req) {
-  const match = (req.headers.cookie || "").match(/(?:^|;\\s*)gamehub_admin_pre=([^;]+)/);
+  const match = (req.headers.cookie || "").match(/(?:^|;\s*)gamehub_admin_pre=([^;]+)/);
   if (!match) return null;
   const session = adminPasswordSessions.get(match[1]);
   if (!session || session.expiresAt <= Date.now()) {
@@ -421,7 +421,9 @@ app.post("/api/admin/logout", requireAdmin, (req, res) => {
   if (!sameAdminOrigin(req)) return res.status(403).json({ reason: "Invalid request origin" });
   const match = (req.headers.cookie || "").match(/(?:^|;\s*)gamehub_admin=([^;]+)/);
   if (match) adminSessions.delete(match[1]);
-  res.set("Set-Cookie", "gamehub_admin=; Path=/api/admin; HttpOnly; Secure; SameSite=Strict; Max-Age=0");
+  const preAuth = adminPasswordSession(req);
+  if (preAuth) adminPasswordSessions.delete(preAuth.token);
+  res.set("Set-Cookie", ["gamehub_admin=; Path=/api/admin; HttpOnly; Secure; SameSite=Strict; Max-Age=0", "gamehub_admin_pre=; Path=/api/admin; HttpOnly; Secure; SameSite=Strict; Max-Age=0"]);
   return res.json({ authenticated: false });
 });
 app.get("/api/admin/config", requireAdmin, (req, res) => res.set("Cache-Control", "no-store").json({ ...adminConfigValues(), maximumForcePay: Number(ADMIN_MAX_FORCE_PAY) }));
