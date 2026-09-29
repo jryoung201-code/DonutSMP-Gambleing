@@ -16,7 +16,23 @@ function weighted(ws){let r=rnd(ws.reduce((a,b)=>a+b,0));for(let i=0;i<ws.length
 function auth(req){const h=req.headers.authorization||"";if(!h.startsWith("Bearer "))return null;const s=sessions.get(h.slice(7));return s&&s.exp>Date.now()?s:null;}
 app.get("/health",(q,r)=>r.json({ok:true}));
 app.post("/api/auth/challenge",(q,r)=>{const id=crypto.randomBytes(24).toString("base64url");sessions.set("c:"+id,{exp:Date.now()+60000});r.json({serverId:id});});
-app.post("/api/auth/login",(q,r)=>{const {username,serverId,verifiedUuid}=q.body||{};const c=sessions.get("c:"+serverId);if(!c||c.exp<Date.now()||!uuid(verifiedUuid))return r.status(401).json({accepted:false,code:"UNAUTHENTICATED",reason:"Verified Mojang UUID required"});sessions.delete("c:"+serverId);const t=crypto.randomBytes(32).toString("base64url");sessions.set(t,{uuid:verifiedUuid,username:String(username||""),exp:Date.now()+900000});r.json({token:t,expiresInSeconds:900});});
+app.post("/api/auth/login",async(q,r)=>{
+  const {username,serverId}=q.body||{};
+  const c=sessions.get("c:"+serverId);
+  if(!c||c.exp<Date.now()||typeof username!=="string"||!username) return r.status(401).json({accepted:false,code:"UNAUTHENTICATED",reason:"Valid challenge and username required"});
+  try{
+    const u="https://sessionserver.mojang.com/session/minecraft/hasJoined?username="+encodeURIComponent(username)+"&serverId="+encodeURIComponent(serverId);
+    const mr=await fetch(u);
+    if(!mr.ok) return r.status(401).json({accepted:false,code:"UNAUTHENTICATED",reason:"Mojang session verification failed"});
+    const profile=await mr.json();
+    const verifiedUuid=profile.id ? profile.id.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/,"$1-$2-$3-$4-$5") : null;
+    if(!uuid(verifiedUuid)) return r.status(401).json({accepted:false,code:"UNAUTHENTICATED",reason:"Mojang did not verify this session"});
+    sessions.delete("c:"+serverId);
+    const t=crypto.randomBytes(32).toString("base64url");
+    sessions.set(t,{uuid:verifiedUuid,username:profile.name||username,exp:Date.now()+900000});
+    r.json({token:t,expiresInSeconds:900});
+  }catch(e){console.error(e);r.status(502).json({accepted:false,code:"UNAUTHENTICATED",reason:"Mojang verification unavailable"});}
+});
 app.get("/api/config",(q,r)=>{const o=safe({minimumBet:CONFIG.minimumBet,maximumBet:CONFIG.maximumBet,paymentTarget:CONFIG.paymentTarget,enabledGames:CONFIG.enabledGames,showOdds:CONFIG.showOdds,cratePrices:CONFIG.cratePrices});if(CONFIG.showOdds)o.oddsBasisPoints={"50_50":{WIN:4000,LOSE:6000}};r.json(o);});
 app.post("/api/bet",(req,res)=>{
  const s=auth(req), {transactionId,game,bet,selection=null}=req.body||{};
