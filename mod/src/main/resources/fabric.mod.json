@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "donutsmp_gamehub",
+  "version": "${version}",
+  "name": "DonutSMP Game Hub",
+  "description": "In-game-currency mini-game hub. All outcomes are decided by the configured backend; the client only displays them.",
+  "authors": ["DonutSMP Game Hub"],
+  "license": "All-Rights-Reserved",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.donutsmp.gamehub.GameHubClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
