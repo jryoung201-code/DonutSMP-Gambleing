@@ -25,7 +25,7 @@ Bet amounts accept formats such as `500k`, `2m`, `10m`, `1b`, `1t`, and plain nu
 
 ## Default server settings
 
-- Minimum bet: `500k`
+- Minimum bet: `100k`
 - Maximum bet: `2m`
 - Payment target: `VoduDoll_YT`
 
