@@ -76,7 +76,7 @@ public final class GameScreen extends Screen {
     @Override
     public void tick() {
         HubConfig config = session.config();
-        boolean ok = config != null && config.isEnabled(game) && !busy;
+        boolean ok = config != null && !config.playerPayEnabled() && config.isEnabled(game) && !busy;
         for (ButtonWidget button : playButtons) button.active = ok;
         if (awaitingPaymentReply && ++replyTicks > 100) {
             awaitingPaymentReply = false;
@@ -108,6 +108,11 @@ public final class GameScreen extends Screen {
     }
 
     private void resolveRound() {
+        if (session.config() != null && session.config().playerPayEnabled()) {
+            busy = false;
+            show("Payment confirmed. The bot is running 50/50; result will appear in server chat.", Theme.MUTED);
+            return;
+        }
         if (session.backend() == null) {
             busy = false;
             show("Payment went through, but the backend is unavailable. Contact admin with transaction " + paymentTransactionId, Theme.BAD);
@@ -197,6 +202,7 @@ public final class GameScreen extends Screen {
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(game.title()), width / 2, py + 10, Theme.TEXT);
         HubConfig config = session.config();
         if (config == null) ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(session.status()), width / 2, py + 26, Theme.BAD);
+        else if (config.playerPayEnabled()) ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("Direct /pay 50/50 is on; pay the bot and check server chat"), width / 2, py + 26, Theme.GOOD);
         else if (!config.isEnabled(game)) ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("This game is disabled by the server"), width / 2, py + 26, Theme.BAD);
         else if (game.usesBet()) {
             ctx.drawTextWithShadow(textRenderer, Text.literal("Min Amount " + MoneyFormat.compact(config.minimumBet()) + "   Max Amount " + MoneyFormat.compact(config.maximumBet())), px + 10, py + 26, Theme.MUTED);

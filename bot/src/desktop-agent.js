@@ -1,4 +1,5 @@
 import mineflayer from "mineflayer";
+import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -116,6 +117,78 @@ async function main() {
     } catch (error) { console.error("Could not record payment result:", error.message); }
     console.log("Payment", status + ":", message);
   };
+
+  const plainMessageText = message => {
+    const visit = value => {
+      if (typeof value === "string") return value;
+      if (Array.isArray(value)) return value.map(visit).join("");
+      if (!value || typeof value !== "object") return "";
+      let text = typeof value.text === "string" ? value.text : "";
+      text += visit(value.extra || []);
+      text += visit(value.with || []);
+      text += visit(value.content || []);
+      text += visit(value.json || []);
+      return text;
+    };
+    const text = visit(message);
+    return (text || (message && typeof message.toString === "function" ? message.toString() : ""))
+      .replace(/§[0-9a-fk-or]/gi, "").replace(/\s+/g, " ").trim();
+  };
+  const parseIncomingPayment = message => {
+    const text = plainMessageText(message);
+    const patterns = [
+      { regex: /(?:^|\b)([A-Za-z0-9_]{3,16})\s+(?:paid you|sent you)\s+\D{0,8}?([\d,]+(?:\.\d+)?)\s*([kmbt]?)(?:\s*(?:coins?)?)?(?:[.!]|$)/i, player: 1, amount: 2, suffix: 3 },
+      { regex: /(?:^|\b)([A-Za-z0-9_]{3,16})\s+paid\s+([A-Za-z0-9_]{3,16})\s+\D{0,8}?([\d,]+(?:\.\d+)?)\s*([kmbt]?)(?:\s*(?:coins?)?)?(?:[.!]|$)/i, player: 1, recipient: 2, amount: 3, suffix: 4 },
+      { regex: /(?:^|\b)you\s+(?:received|were paid)\s+\D{0,8}?([\d,]+(?:\.\d+)?)\s*([kmbt]?)\s+from\s+([A-Za-z0-9_]{3,16})(?:[.!]|$)/i, player: 3, amount: 1, suffix: 2 },
+      { regex: /(?:^|\b)received\s+\D{0,8}?([\d,]+(?:\.\d+)?)\s*([kmbt]?)\s+from\s+([A-Za-z0-9_]{3,16})(?:[.!]|$)/i, player: 3, amount: 1, suffix: 2 }
+    ];
+    for (const pattern of patterns) {
+      const match = text.match(pattern.regex);
+      if (!match) continue;
+      const numeric = Number(match[pattern.amount].replace(/,/g, ""));
+      const suffix = (match[pattern.suffix] || "").toLowerCase();
+      const amount = numeric * ({ k: 1e3, m: 1e6, b: 1e9, t: 1e12 }[suffix] || 1);
+      if (!Number.isSafeInteger(amount) || amount < 1) return null;
+      return { player: match[pattern.player], recipient: pattern.recipient ? match[pattern.recipient] : null, amount, text };
+    }
+    return null;
+  };
+  const incomingSeen = new Map();
+  const inspectIncomingPayment = async (message, position, sender) => {
+    const positionName = String(position || "").toLowerCase();
+    if (sender || !["system", "game_info"].includes(positionName)) return;
+    const payment = parseIncomingPayment(message);
+    if (!payment || (payment.recipient && payment.recipient.toLowerCase() !== bot.username.toLowerCase())) return;
+    const dedupeKey = payment.player.toLowerCase() + ":" + payment.amount;
+    const now = Date.now();
+    if (now - (incomingSeen.get(dedupeKey) || 0) < 1500) return;
+    incomingSeen.set(dedupeKey, now);
+    for (const [key, time] of incomingSeen) if (now - time > 10000) incomingSeen.delete(key);
+
+    const requestId = crypto.randomUUID();
+    try {
+      const outcome = await api("/api/admin/desktop-bot/incoming-payment", {
+        method: "POST",
+        body: JSON.stringify({ requestId, player: payment.player, recipient: bot.username, amount: payment.amount })
+      });
+      const amountText = Number(outcome.amount).toLocaleString();
+      if (outcome.result === "REFUND") {
+        const messageText = payment.player + ", 50/50 is unavailable: " + (outcome.reason || "payment refunded") + "; " + Number(outcome.refund).toLocaleString() + " coins returned.";
+        console.log(messageText);
+        bot.chat(messageText);
+      } else if (outcome.result === "WIN") {
+        const messageText = payment.player + ", 50/50 WIN! " + Number(outcome.payout).toLocaleString() + " coins queued.";
+        console.log(messageText, "(bet " + amountText + ")");
+        bot.chat(messageText);
+      } else {
+        const messageText = payment.player + ", 50/50 LOSE. No payout.";
+        console.log(messageText, "(bet " + amountText + ")");
+        bot.chat(messageText);
+      }
+    } catch (error) {
+      console.error("Could not process incoming payment:", error.message, payment.text);
+    }
+  };
   const inspectMessage = async message => {
     if (!activeJob) return;
     const text = messageText(message);
@@ -173,7 +246,7 @@ async function main() {
         await sendStatus("connected", `Connected to DonutSMP as ${bot.username}.`, { username: bot.username, minecraftUuid: uuid });
         console.log("Connected to DonutSMP as", bot.username);
       });
-      bot.on("message", message => { void inspectMessage(message); });
+      bot.on("message", (message, position, sender) => { void inspectMessage(message); void inspectIncomingPayment(message, position, sender); });
       bot.on("kicked", reason => {
         const details = messageText(reason);
         lastKickDetails = details.slice(0, 500);

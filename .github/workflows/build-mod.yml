@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - 'mod/**'
+      - 'backend/**'
+      - 'bot/**'
       - '.github/workflows/build-mod.yml'
   workflow_dispatch:
 
@@ -39,6 +41,12 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Check backend and bot JavaScript syntax
+        working-directory: .
+        run: |
+          node --check backend/src/index.js
+          node --check bot/src/desktop-agent.js
+
       - name: Install desktop bot dependencies
         working-directory: .
         run: npm ci --prefix bot
@@ -59,9 +67,9 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.5
-          name: DonutSMP Game Hub v0.1.5
+          tag_name: v0.1.6
+          name: DonutSMP Game Hub v0.1.6
           generate_release_notes: true
           files: |
-            mod/build/libs/donutsmp-game-hub-0.1.5.jar
+            mod/build/libs/donutsmp-game-hub-0.1.6.jar
             bot/dist/DonutSMPDesktopBot.exe
