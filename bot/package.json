@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node src/index.js",
     "start:desktop": "node src/desktop-agent.js",
-    "build:desktop:win": "esbuild src/desktop-agent.js --bundle --platform=node --format=cjs --packages=external --outfile=dist/desktop-agent.cjs && pkg --compress GZip dist/desktop-agent.cjs --targets node22-win-x64 --output dist/DonutSMPDesktopBot.exe"
+    "build:desktop:win": "esbuild src/desktop-agent.js --bundle --platform=node --format=cjs --packages=external --outfile=dist/desktop-agent.cjs && pkg --public --public-packages \"*\" --compress GZip dist/desktop-agent.cjs --targets node22-win-x64 --output dist/DonutSMPDesktopBot.exe"
   },
   "dependencies": {
     "abort-controller": "^3.0.0",
@@ -27,4 +27,3 @@
     ]
   }
 }
-
